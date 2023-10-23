@@ -27,11 +27,13 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+task dockerImageTaging(type: Exec){
+	commandLine "docker", "tag", "${rootProject.name}:${version} 55069816/${rootProject.name}:${version}"
+
+}
+
 task dockerPushIMage(type: Exec){
 	dependsOn bootBuildImage
-	//docker tag management-system-eks:0.0.1-SNAPSHOT 55069816/management-system-eks:0.0.1-SNAPSHOT
-	//docker push 55069816/management-system-eks:0.0.1-SNAPSHOT
-
+	dependsOn dockerImageTaging
 	commandLine "docker", "push", "55069816/${rootProject.name}:${version}"
-
 }
