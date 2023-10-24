@@ -9,7 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "roles")
+@Table(name = "role_info")
 public class Role implements GrantedAuthority {
 
     @Id
