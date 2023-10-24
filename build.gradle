@@ -5,6 +5,12 @@ plugins {
 	id 'org.graalvm.buildtools.native' version '0.9.27'
 	id 'com.bmuschko.docker-remote-api' version '9.3.4'
 
+	id 'org.liquibase.gradle' version '2.2.0'
+
+}
+
+configurations {
+	liquibaseRuntime.extendsFrom runtime
 }
 
 group = 'com.ms'
@@ -32,6 +38,13 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	liquibaseRuntime 'org.liquibase:liquibase-core:4.16.1'
+	liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:3.0.2'
+	liquibaseRuntime 'info.picocli:picocli:4.6.1'
+	liquibaseRuntime 'org.liquibase.ext:liquibase-hibernate5:3.6'
+	liquibaseRuntime 'org.springframework.boot:spring-boot-starter-data-jpa'
+	liquibaseRuntime sourceSets.main.output
 }
 
 tasks.named('test') {
@@ -47,4 +60,36 @@ task dockerPushIMage(type: Exec){
 	dependsOn bootBuildImage
 	dependsOn dockerImageTaging
 	commandLine "docker", "push", "55069816/${rootProject.name}:${version}"
+}
+
+
+
+
+
+//loading properties file.
+Properties liquibaseProps = new Properties()
+liquibaseProps.load(new FileInputStream(file("src/main/resources/liquibase-task.properties")))
+
+Properties applicationProps = new Properties()
+applicationProps.load(new FileInputStream(file("src/main/resources/application.properties")))
+
+task liquibaseDiffChangeLog(type: JavaExec) {
+	group = "liquibase"
+	classpath sourceSets.main.runtimeClasspath
+	classpath configurations.liquibaseRuntime
+	mainClass = "liquibase.integration.commandline.Main"
+	args "--changeLogFile="+liquibaseProps.getProperty('liquibase.changelog.path')+ "db.changelog-"+ buildTimestamp()+"-schema.groovy"
+	args "--referenceUrl=hibernate:spring:" + liquibaseProps.getProperty('liquibase.domain.package') + "?dialect=" + applicationProps.getProperty('spring.jpa.properties.hibernate.dialect')
+	args "--username=" + applicationProps.getProperty('spring.datasource.username')
+	args "--password=" + applicationProps.getProperty('spring.datasource.password')
+	args "--url=" + applicationProps.getProperty('spring.datasource.url')
+	args "--driver=" + applicationProps.getProperty('spring.datasource.driverClassName')
+	args "--referenceDriver=" + applicationProps.getProperty('spring.datasource.driverClassName')
+	args "diffChangeLog"
+}
+
+def buildTimestamp() {
+	def date = new Date()
+	def formattedDate = date.format('yyyyMMdd_HHmmss')
+	return formattedDate
 }
